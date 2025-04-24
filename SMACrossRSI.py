@@ -11,22 +11,22 @@ from utils import load_data, print_and_export_trades
 #
 
 ticker_name = 'AVAXUSDT'
-year = 2024 # From 2020 to 2025
-months = range(1, 13) # Months to load e.g. range(1, 13) for all months or [1, 3] for Jan and Mar
+year = 2025 # From 2020 to 2025
+months = range(1, 4) # Months to load e.g. range(1, 13) for all months or [1, 3] for Jan and Mar
 interval = '1h' # Data interval (e.g. '1m', '5m', '15m', '30m', '1h', '4h', '1d')
 timestamp_unit = 'us' # For 2025 data, use 'us' for microseconds
 
 cash = 10000  # Initial cash amount in USD
 commission = 0.002  # Commission per trade
 exclusive_orders = True  # Only one order at a time
-n1 = 12  # Fast SMA
-n2 = 118  # Slow SMA
-rsi_window = 14  # RSI window
-rsi_upper_bound = 50 # Upper bound for RSI
-rsi_lower_bound = 40 # Lower bound for RSI
+n1 = 5  # Fast SMA
+n2 = 90  # Slow SMA
+rsi_window = 10  # RSI window
+rsi_upper_bound = 54 # Upper bound for RSI
+rsi_lower_bound = 44 # Lower bound for RSI
 do_optimization = True  # Set to True to run optimization
 maximize = 'Return [%]' # 'Return [%]', 'Sharpe Ratio', 'Max. Drawdown [%]', 'Win Rate [%]', 'Profit Factor', 'Expectancy [%]'
-
+stop_loss = 0.05  # Stop loss percentage (5%)
 
 #
 # Load data
@@ -67,7 +67,7 @@ class SMACrossRSI(Strategy):
                 if self.position.is_short:
                     self.position.close()
                 # Enter long position
-                self.buy(sl=self.data.Close[-1] * 0.95)
+                self.buy(sl=self.data.Close[-1] * (1 - stop_loss))
 
         elif crossover(self.sma2, self.sma1) or self.rsi[-1] < self.rsi_lower_bound:
             # Check if we are not already in a position
@@ -76,7 +76,7 @@ class SMACrossRSI(Strategy):
                 if self.position.is_long:
                     self.position.close()
                 # Enter short position
-                self.sell(sl=self.data.Close[-1] * 1.05)
+                self.sell(sl=self.data.Close[-1] * (1 + stop_loss))
 
 #
 # Initialize the backtest
@@ -106,11 +106,11 @@ else:
 
     # Run optimization
     optimization_results, heatmap = bt.optimize(
-        n1=range(2, 52, 2),  # Fast SMA from 2 to 50, step 2
-        n2=range(50, 202, 2),  # Slow SMA from 50 to 200, step 2
-        rsi_window=range(5, 31, 2),  # RSI window from 5 to 30, step 2
-        rsi_upper_bound=range(50, 62, 2),  # RSI upper bound from 50 to 60, step 2
-        rsi_lower_bound=range(40, 52, 2),  # RSI lower bound from 40 to 50, step 2
+        n1=range(5, 30, 5),
+        n2=range(40, 100, 10),
+        rsi_window=range(10, 21, 5),
+        rsi_upper_bound=range(52, 58, 2),
+        rsi_lower_bound=range(42, 48, 2),
         maximize=maximize,  # Maximize param
         constraint=lambda p: p.n1 < p.n2  and p.rsi_upper_bound > p.rsi_lower_bound,
         return_heatmap=True # Return heatmap data
